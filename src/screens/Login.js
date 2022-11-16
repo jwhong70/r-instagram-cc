@@ -14,6 +14,8 @@ import routes from "../routes";
 import PageTitle from "../components/PageTitle";
 import { useForm } from "react-hook-form";
 import FormError from "../components/auth/FormError";
+import { gql, useMutation } from "@apollo/client";
+import { logUserIn } from "../apollo";
 
 const FacebookLogin = styled.div`
   color: #385285;
@@ -22,14 +24,49 @@ const FacebookLogin = styled.div`
     font-weight: 600;
   }
 `;
+const LOGIN_MUTATION = gql`
+  mutation login($username: String!, $password: String!) {
+    login(username: $username, password: $password) {
+      ok
+      token
+      error
+    }
+  }
+`;
 
 function Login() {
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
+    getValues,
+    setError,
+    clearErrors,
   } = useForm({ mode: "onChange" });
-  const onValid = (data) => {};
+  const onValid = (data) => {
+    if (loading) {
+      return;
+    }
+    const { username, password } = getValues();
+    loginMutation({ variables: { username, password } });
+  };
+  const onCompleted = (data) => {
+    const {
+      login: { ok, error, token },
+    } = data;
+    if (!ok) {
+      return setError("result", { message: error });
+    }
+    if (token) {
+      logUserIn(token);
+    }
+  };
+  const [loginMutation, { loading }] = useMutation(LOGIN_MUTATION, {
+    onCompleted,
+  });
+  const clearLoginError = () => {
+    clearErrors("result");
+  };
   return (
     <AuthLayout>
       <PageTitle title="Login" />
@@ -49,6 +86,7 @@ function Login() {
             type="text"
             placeholder="Username"
             hasError={Boolean(errors?.username?.message)}
+            onFocus={clearLoginError}
           />
           <FormError message={errors?.username?.message} />
           <Input
@@ -56,9 +94,15 @@ function Login() {
             type="password"
             placeholder="Password"
             hasError={Boolean(errors?.password?.message)}
+            onFocus={clearLoginError}
           />
           <FormError message={errors?.password?.message} />
-          <Button type="submit" value="Log in" disabled={!isValid} />
+          <Button
+            type="submit"
+            value={loading ? "Loading..." : "Log in"}
+            disabled={!isValid || loading}
+          />
+          <FormError message={errors?.result?.message} />
         </form>
         <Separator />
         <FacebookLogin>
