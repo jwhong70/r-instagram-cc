@@ -9,6 +9,30 @@ import Input from "../components/auth/Input";
 import Button from "../components/auth/Button";
 import BottomBox from "../components/auth/BottomBox";
 import routes from "../routes";
+import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
+import { gql, useMutation } from "@apollo/client";
+
+const CREATE_ACCOUNT_MUTATION = gql`
+  mutation createAccount(
+    $firstName: String!
+    $lastName: String
+    $username: String!
+    $email: String!
+    $password: String!
+  ) {
+    createAccount(
+      firstName: $firstName
+      lastName: $lastName
+      username: $username
+      email: $email
+      password: $password
+    ) {
+      ok
+      error
+    }
+  }
+`;
 
 const HeaderContainer = styled.div`
   display: flex;
@@ -22,6 +46,34 @@ const Subtitle = styled(FatLink)`
 `;
 
 function SingUp() {
+  const {
+    register,
+    handleSubmit,
+    formState: { isValid },
+    getValues,
+  } = useForm({ mode: "onChange" });
+  const onValid = (data) => {
+    if (loading) {
+      return;
+    }
+    createAccount({ variables: { ...data } });
+  };
+  const navigate = useNavigate();
+  const onCompleted = (data) => {
+    const { username, password } = getValues();
+    const {
+      createAccount: { ok },
+    } = data;
+    if (!ok) {
+      return;
+    }
+    navigate(routes.home, {
+      state: { message: "Account created. Please log in.", username, password },
+    });
+  };
+  const [createAccount, { loading }] = useMutation(CREATE_ACCOUNT_MUTATION, {
+    onCompleted,
+  });
   return (
     <AuthLayout>
       <PageTitle title="Sign up" />
@@ -35,12 +87,33 @@ function SingUp() {
         </HeaderContainer>
       </FormBox>
       <BottomBox cta="Have an account?" linkText="Log in" link={routes.home} />
-      <form>
-        <Input type="text" placeholder="Name" />
-        <Input type="text" placeholder="Email" />
-        <Input type="text" placeholder="Username" />
-        <Input type="password" placeholder="Password" />
-        <Button type="submit" value="Sign up" />
+      <form onSubmit={handleSubmit(onValid)}>
+        <Input
+          {...register("firstName", { required: "First Name is required." })}
+          type="text"
+          placeholder="First Name"
+        />
+        <Input {...register("lastName")} type="text" placeholder="Last Name" />
+        <Input
+          {...register("email", { required: "Email is required." })}
+          type="text"
+          placeholder="Email"
+        />
+        <Input
+          {...register("username", { required: "Username is required." })}
+          type="text"
+          placeholder="Username"
+        />
+        <Input
+          {...register("password", { required: "Password is required." })}
+          type="password"
+          placeholder="Password"
+        />
+        <Button
+          type="submit"
+          value={loading ? "Loading..." : "Sign up"}
+          disabled={!isValid || loading}
+        />
       </form>
     </AuthLayout>
   );
