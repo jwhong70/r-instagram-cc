@@ -16,6 +16,16 @@ const FEED_QUERY = gql`
       createdAt
       isMine
       isLiked
+      comments {
+        id
+        user {
+          username
+          avatar
+        }
+        payload
+        createdAt
+      }
+      commentNumber
     }
   }
 `;
