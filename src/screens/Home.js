@@ -1,20 +1,33 @@
-import { logUserOut } from "../apollo";
-import routes from "./../routes";
-import { useNavigate } from "react-router-dom";
+import { gql, useQuery } from "@apollo/client";
+import Photo from "../components/feed/Photo";
+import PageTitle from "../components/PageTitle";
+
+const FEED_QUERY = gql`
+  query seeFeeds {
+    seeFeeds {
+      id
+      user {
+        username
+        avatar
+      }
+      file
+      caption
+      likes
+      createdAt
+      isMine
+      isLiked
+    }
+  }
+`;
 
 function Home() {
-  const navigate = useNavigate();
+  const { data } = useQuery(FEED_QUERY);
   return (
     <>
-      <h1>Welcome we did it!</h1>
-      <button
-        onClick={() => {
-          logUserOut();
-          navigate(routes.home, { replace: true });
-        }}
-      >
-        Log out now!
-      </button>
+      <PageTitle title="Home" />
+      {data?.seeFeeds?.map((photo) => (
+        <Photo key={photo.id} {...photo} />
+      ))}
     </>
   );
 }
